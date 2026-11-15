@@ -628,16 +628,25 @@ begin
     for j in 1..5 loop
       products := array_append(products, pg_temp.ins_product(restaurants[i], categories[pg_temp.get_random_int(1, value)]));
     end loop;
+
+    if not exists (select 1 from product where restaurant_id = restaurants[i] and status = 'доступно') then
+      update product set status = 'доступно' where product_id = products[(i - 1) * 5 + 1];
+    end if;
   end loop;
 
   payment_offset := pg_temp.get_random_int(0, 4);
   for i in 1..value * 5 loop
     restaurant_index := pg_temp.get_random_int(1, value);
     client_index := pg_temp.get_random_int(1, value);
-    restaurant_products := products[(restaurant_index - 1) * 5 + 1:restaurant_index * 5];
+    select array_agg(p.product_id)
+    into restaurant_products
+    from product p
+    where p.restaurant_id = restaurants[restaurant_index]
+      and p.status = 'доступно';
     --В каждой пятёрке один заказ с двумя попытками, один без попыток, прочие с одной.
-    payment_count := case (i - 1 + payment_offset) % 5
-      when 0 then 2 when 1 then 0 else 1 end;
+    payment_count := case (i - 1 + payment_offset) % 5 when 0 then 2
+                                                       when 1 then 0
+                                                       else 1 end;
 
     perform pg_temp.ins_order(clients[client_index]
                              ,client_addresses[(client_index - 1) * 4 + pg_temp.get_random_int(1, 4)]

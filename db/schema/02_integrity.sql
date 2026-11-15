@@ -102,6 +102,33 @@ after insert or update on bartov_food."order"
 deferrable initially deferred for each row
 execute function bartov_food.check_order_row();
 
+create function bartov_food.check_order_product_available() returns trigger
+  language plpgsql
+  set search_path = bartov_food, pg_catalog
+  as $$
+declare
+  saved_status product_status;
+begin
+  if tg_op = 'INSERT' or new.product_id is distinct from old.product_id then
+    select status into saved_status
+    from product
+    where product_id = new.product_id for share;
+
+    if not found then
+      raise exception 'Блюдо % не найдено.', new.product_id;
+    end if;
+
+    if saved_status <> 'доступно' then
+      raise exception 'Нельзя добавить блюдо % в заказ: статус «%», требуется «доступно».', new.product_id, saved_status;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+create trigger order_product_available
+before insert or update of product_id on bartov_food.order_structure
+for each row execute function bartov_food.check_order_product_available();
+
 create function bartov_food.check_order_lines() returns trigger
   language plpgsql 
   set search_path = bartov_food, pg_catalog 

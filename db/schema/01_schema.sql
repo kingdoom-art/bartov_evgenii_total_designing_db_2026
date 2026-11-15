@@ -33,7 +33,7 @@ CREATE TABLE bartov_food.restaurant (
     restaurant_id uuid PRIMARY KEY DEFAULT exts.uuid_generate_v4(),
     restaurant_name varchar(200) NOT NULL,
     address_id uuid NOT NULL UNIQUE REFERENCES bartov_food.address (address_id),
-    description text NOT NULL,
+    description text,
     work_start time NOT NULL,
     work_end time NOT NULL,
     inn varchar(12) NOT NULL CHECK (inn ~ '^([0-9]{10}|[0-9]{12})$'),
@@ -79,7 +79,7 @@ CREATE TABLE bartov_food.product (
     restaurant_id uuid NOT NULL REFERENCES bartov_food.restaurant (restaurant_id),
     rating numeric(4, 2) CHECK (rating BETWEEN 0 AND 5),
     status bartov_food.product_status NOT NULL DEFAULT 'доступно',
-    description text NOT NULL
+    description text
 );
 
 CREATE TABLE bartov_food.product_photo (
@@ -101,7 +101,7 @@ CREATE TABLE bartov_food."order" (
     total_amount numeric(14, 2) GENERATED ALWAYS AS (order_amount + round(order_amount * 0.10, 2)) STORED,
     status bartov_food.order_status NOT NULL DEFAULT 'создан',
     pay_status bartov_food.order_pay_status NOT NULL DEFAULT 'ожидает',
-    description text NOT NULL,
+    description text,
     CHECK (total_amount >= 1000),
     CHECK (delivery_timestamp IS NULL OR delivery_timestamp >= order_timestamp),
     CHECK (status <> 'доставлен' OR delivery_timestamp IS NOT NULL)
@@ -135,7 +135,7 @@ CREATE TABLE bartov_food.review (
     entity_id uuid NOT NULL,
     entity_type bartov_food.review_entity_type NOT NULL,
     order_id uuid NOT NULL REFERENCES bartov_food."order" (order_id),
-    description text NOT NULL,
+    description text,
     rating integer NOT NULL CHECK (rating BETWEEN 1 AND 5),
     UNIQUE (order_id, entity_type, entity_id)
 );
